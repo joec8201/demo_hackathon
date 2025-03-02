@@ -15,9 +15,11 @@ export class Application extends BaseApplication {
         // the initial_data is the data from contract
         if (initial_data != "") {
             const decoded = ethers.AbiCoder.defaultAbiCoder().decode(['uint256'], initial_data);
-            this.result = this.fibonacci(Number(decoded[0]));
-            console.log("fib result", this.result);
-            console.log("fib encode result", this.resultData())
+            const n = Number(decoded[0])
+            this.result = this.inverseTransform(n);
+            console.log("Computing mean of " + n + " random standard normal samples ON THE BLOCKCHAIN:")
+            console.log("Gaussian Mean result", this.result);
+            console.log("Gaussian Mean encoded result", this.encodeFloatAsHex(this.result))
         } else {
             // it can be empty string if no initial data sent by contract
             this.result = 1;
@@ -39,14 +41,25 @@ export class Application extends BaseApplication {
         return [true, this.resultData()];
     }
 
-    fibonacci(n: number): number {
-        if (n <= 0) return 0;
-        if (n === 1) return 1;
-        return this.fibonacci(n - 1) + this.fibonacci(n - 2);
+    inverseNormalCDF(p: number): number {
+         return -Math.log((1 / p) - 1) / 1.702
+    }
+
+    inverseTransform(n: number) {
+        let res = new Array(n).fill(0)
+        for(let i = 0; i < n; i++){
+            res[i] = this.inverseNormalCDF(Math.random())
+            }
+        const sum = res.reduce((a, b) => a + b, 0);
+        return sum / n
+    }
+
+    encodeFloatAsHex(x: number){
+        return Math.round(x * Math.pow(10, 10)).toString(16)
     }
 
     resultData() {
-        return ethers.AbiCoder.defaultAbiCoder().encode(["uint256"], [this.result]);
+        return ethers.AbiCoder.defaultAbiCoder().encode(["int256"], [this.result]);
     }
 }
 
